@@ -20,13 +20,12 @@
     self.searchBar.delegate = self;
     self.mapView.delegate = self;
     self.mapView.myLocationEnabled = YES;
-    self.locationPhoto = [[UIImageView alloc]init];
+    self.locationPhoto = [[UIImage alloc]init];
     self.searchResultsDictionary = [[NSMutableDictionary alloc]init];
     self.JSONData = [[NSData alloc]init];
     self.arrayOfAllMarkers = [[NSMutableArray alloc]init];
     [self addHardCodedPins];
     [self focusMapToShowAllMarkers];
-//    [self searchForRestaurants:@"restaurant"];
     [[NSNotificationCenter defaultCenter] addObserver:self
                                              selector:@selector(getImageFromAPI)
                                             name:@"startMakingMarkers"
@@ -35,17 +34,10 @@
                                              selector:@selector(createMarkersFromSearch)
                                                  name:@"makeMarker"
                                                object:nil];
-
-    
 }
 
-- (void)didReceiveMemoryWarning {
-    [super didReceiveMemoryWarning];
-    // Dispose of any resources that can be recreated.
-}
-
+//returns the latitude and longitude of an address passed in as a string
 - (CLLocationCoordinate2D)getLocation:(NSString *)address {
-    
     CLLocationCoordinate2D center;
     NSString *esc_addr =  [address stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
     NSString *req = [NSString stringWithFormat:@"http://maps.google.com/maps/api/geocode/json?sensor=false&address=%@", esc_addr];
@@ -70,17 +62,16 @@
         NSDictionary *location = (NSDictionary *) [geometry objectForKey:@"location"];
         NSNumber *lat = (NSNumber *) [location objectForKey:@"lat"];
         NSNumber *lng = (NSNumber *) [location objectForKey:@"lng"];
-        
         center.latitude = [lat doubleValue];
         center.longitude = [lng doubleValue];
         return center;
     }
 }
 
+//creates  the custom marker object with text, photo and website
 -(UIView*) mapView: (GMSMapView*)mapView markerInfoWindow:(Restaurant *)marker
 {
     MyCustomMarker * infoWindow = [[[NSBundle mainBundle]loadNibNamed:@"MyCustomMarker" owner:self options:nil]objectAtIndex:0];
-    
     infoWindow.title.text = marker.title;
     infoWindow.detail.text = marker.snippet;
     if(marker.imageString){
@@ -91,10 +82,9 @@
     return infoWindow;
 }
 
+//creates the segmented controls that allows the user to have options of normal, satilite, or hybrid view of the map
 - (IBAction)segmentedControl:(UISegmentedControl *)sender {
-   
     NSUInteger selectedMapType = sender.selectedSegmentIndex;
-    
     switch (selectedMapType) {
         case 0:
             self.mapView.mapType = kGMSTypeNormal;
@@ -105,23 +95,22 @@
         case 2:
             self.mapView.mapType = kGMSTypeSatellite;
             break;
-            
         default:
             self.mapView.mapType = kGMSTypeNormal;
             break;
     }
 }
 
+//this method focuses the map so that all the markers can been seen on one screen
 - (void)focusMapToShowAllMarkers
 {
     GMSCoordinateBounds *bounds = [[GMSCoordinateBounds alloc] init];
-    
     for (Restaurant *marker in self.arrayOfAllMarkers)
         bounds = [bounds includingCoordinate:marker.position];
-    
     [self.mapView animateWithCameraUpdate:[GMSCameraUpdate fitBounds:bounds withPadding:30.0f]];
 }
 
+//the first three hard coded locations
 -(void)addHardCodedPins
 {
     Restaurant *turnToTech = [[Restaurant alloc]init];
@@ -150,16 +139,20 @@
     [self.arrayOfAllMarkers addObject:ilBastardo];
 }
 
+//this method transitions the app to the website view when the user taps on the marker
 - (void)mapView:(GMSMapView *)mapView didTapInfoWindowOfMarker:(Restaurant *)marker {
     WebSiteViewController *viewController = [[WebSiteViewController alloc]init];
     viewController.webSite = marker.webSite;
     [self presentViewController:viewController animated:YES completion:nil];
 }
 
+//this is just for programing convenience it returns the total number of results in a api query
 -(int)numberOfRestaurants
 {
     return [[self.searchResultsDictionary objectForKey:@"results"] count];
 }
+
+//this method queries goolge and performs a google Nearby Search.  It returns nearby locations that match the users input into the search bar.  it then loads the raw JSON data into a dictionary
 -(void)searchForRestaurants: (NSString*) restaurants
 {
     NSString *APIKey = @"AIzaSyAhBAkEPqpdLOyioHkW8ybpCaX9sOM_jOU";
@@ -177,15 +170,14 @@
                  object:nil];
                 }else{NSLog(@"no data returned");};
             });
-            
         }else{
             NSLog(@"%@",error.localizedDescription);
         }
-        
     }];
     [searchResults resume];
 }
 
+//returns the location of a marker from the downloaded data.  The method accepts the dictionary containing the raw data from Google and an integer which acts as a counter when loading the queried results
 -(CLLocationCoordinate2D)getPosition: (NSMutableDictionary*) dictionary index:(int) index
 {
     CLLocationCoordinate2D center;
@@ -200,6 +192,7 @@
     return center;
 }
 
+//this method gets the url of a photo that represents the marker
 -(NSString*)getPhotoReference: (NSMutableDictionary*) dictionary index:(int) index
 {
     
@@ -214,9 +207,9 @@
 
         return @"noDataInArray";
     }
-    
 }
 
+//this is a second API request sent to google to retrieve the image of the location
 -(void)getImageFromAPI
 {
     NSString *photoReference = [self getPhotoReference:self.searchResultsDictionary index:self.markerCounter];
@@ -226,12 +219,8 @@
     NSURLSessionDownloadTask *downLoadPhotoTask = [[NSURLSession sharedSession]downloadTaskWithURL:url completionHandler:^(NSURL * _Nullable location, NSURLResponse * _Nullable response, NSError * _Nullable error) {
         if(!error){
         UIImage *downLoadedImage = [UIImage imageWithData:[NSData dataWithContentsOfURL:location]];
-        
-        // Save the image to your Photo Album
         UIImageWriteToSavedPhotosAlbum(downLoadedImage, nil, nil, nil);
-        
         dispatch_async(dispatch_get_main_queue(), ^{
-         
             self.locationPhoto = downLoadedImage;
             self.markerCounter++;
             [[NSNotificationCenter defaultCenter]
@@ -240,30 +229,28 @@
         });}else{
             NSLog(@"%@",error.localizedDescription);
         }
-
-        
     }];
     [downLoadPhotoTask resume];
-    
 }
 
+//parses the data to return the title of the marker
 -(NSString*)getTitle: (NSMutableDictionary*) dictionary index:(int) index
 {
     NSArray *results = (NSArray *) dictionary[@"results"];
     NSDictionary *firstItem = (NSDictionary *) [results objectAtIndex:index];
     NSString *name = (NSString*)[firstItem objectForKey:@"name"];
     return name;
-    
 }
 
+//this is the method that is run when the user clicks the searchbar
 -(void)searchBarSearchButtonClicked:(UISearchBar *)searchBar
 {
     [self searchForRestaurants:searchBar.text];
 }
 
+//this method creates the new markers from all the data collected from both data requests for the places and then for the images
 -(void)createMarkersFromSearch
 {
-        
         Restaurant *tempRest = [[Restaurant alloc]init];
         tempRest.position = [self getPosition:self.searchResultsDictionary index:self.markerCounter-1];
         tempRest.title = [self getTitle:self.searchResultsDictionary index:self.markerCounter-1];
@@ -277,5 +264,9 @@
     }
 }
 
+//memory warning method
+- (void)didReceiveMemoryWarning {
+    [super didReceiveMemoryWarning];
+}
 
 @end
