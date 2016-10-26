@@ -17,7 +17,6 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     
-    WKWebViewConfiguration *theConfig = [[WKWebViewConfiguration alloc]init];
     self.view.frame = [[UIScreen mainScreen] bounds];
     
     self.webViewForWebSite = [[WKWebView alloc]init];

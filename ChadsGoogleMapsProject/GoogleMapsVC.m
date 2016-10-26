@@ -39,7 +39,9 @@
 //returns the latitude and longitude of an address passed in as a string
 - (CLLocationCoordinate2D)getLocation:(NSString *)address {
     CLLocationCoordinate2D center;
-    NSString *esc_addr =  [address stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
+    NSString *esc_addr =  [address
+                           
+                           stringByAddingPercentEscapesUsingEncoding:NSUTF8StringEncoding];
     NSString *req = [NSString stringWithFormat:@"http://maps.google.com/maps/api/geocode/json?sensor=false&address=%@", esc_addr];
     NSData *responseData = [[NSData alloc] initWithContentsOfURL:
                             [NSURL URLWithString:req]];
